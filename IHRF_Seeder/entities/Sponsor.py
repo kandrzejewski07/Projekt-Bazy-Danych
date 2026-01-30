@@ -1,5 +1,11 @@
-from sqlalchemy import Column, Integer, String
+import enum
+
+from sqlalchemy import Column, Integer, String, Enum
 from entities.Base import Base
+
+class Category(enum.Enum):
+    Natural = "Natural"
+    Formula_H = "Formula H"
 
 class Sponsor(Base):
     __tablename__ = 'sponsors'
@@ -9,6 +15,7 @@ class Sponsor(Base):
     tax_number = Column(String(30))
     country = Column(String(80))
     city = Column(String(120))
+    category = Column(Enum(Category))
     rep_first_name = Column(String(50))
     rep_last_name = Column(String(50))
     rep_email = Column(String(255))

@@ -6,4 +6,4 @@ class Cost(Base):
 
     cost_id = Column(Integer, primary_key=True)
     year = Column(Integer)
-    value_gbp = Column(Numeric(12,2))
+    value = Column(Numeric(12,2))

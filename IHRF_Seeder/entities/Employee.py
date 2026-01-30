@@ -14,5 +14,5 @@ class Employee(Base):
     hire_date = Column(Date)
     position = Column(String(100))
     employment_type = Column(String(40))
-    salary_gbp = Column(Numeric(10, 2))
+    salary = Column(Numeric(10, 2))
     is_active = Column(Boolean)

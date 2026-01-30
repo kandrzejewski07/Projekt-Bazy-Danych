@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from entities import *
 from entities.Discipline import Surface, Category
+from entities.Sponsor import Category as Sponsor_Category
 
 
 class DatabaseSeeder:
@@ -39,18 +40,18 @@ class DatabaseSeeder:
         self.session.execute(text("ALTER TABLE financings AUTO_INCREMENT = 1"))
         self.session.execute(text("ALTER TABLE costs AUTO_INCREMENT = 1"))
         self.session.execute(text("ALTER TABLE owners AUTO_INCREMENT = 1"))
-        # owners = self.create_owners(100)
-        # hamsters = self.create_hamsters(1000, owners)
+        owners = self.create_owners(100)
+        hamsters = self.create_hamsters(1000, owners)
         employees = self.create_employees(100)
-        # sponsors = self.create_sponsors(100)
-        # disciplines = self.create_disciplines(100)
-        # financings = self.create_financings(100)
-        # costs = self.create_costs()
-        # competitions = self.create_competitions(100, disciplines)
-        # sponsorship_contracts = self.create_sponsorship_contracts(100, sponsors)
-        # participations = self.create_participations(5, 20, competitions, hamsters)
-        # doping_tests = self.create_doping_tests(100, participations, employees, competitions)
-        # self.fix_results_when_disqualifed(participations)
+        sponsors = self.create_sponsors(100)
+        disciplines = self.create_disciplines(100)
+        financings = self.create_financings(100)
+        costs = self.create_costs()
+        competitions = self.create_competitions(100, disciplines)
+        sponsorship_contracts = self.create_sponsorship_contracts(100, sponsors)
+        participations = self.create_participations(5, 20, competitions, hamsters)
+        doping_tests = self.create_doping_tests(100, participations, employees, competitions)
+        self.fix_results_when_disqualifed(participations)
 
     def create_owners(self, count):
         faker_languages = ['it_IT', 'en_GB', 'pl_PL', 'fr_FR', 'de_DE']
@@ -89,7 +90,7 @@ class DatabaseSeeder:
             hamster = Hamster(
                 name = faker_names.first_name(),
                 race = self.faker.random_element(races),
-                weight_grams = self.random(20, 200),
+                weight = self.random(20, 200),
                 birth_date = birth_date,
                 death_date = death_date,
                 specialty = self.faker.random_element(specialties),
@@ -119,6 +120,9 @@ class DatabaseSeeder:
             single_country_faker = Faker(locale=self.faker.random_element(faker_languages))
             birth_date = self.faker.date_of_birth(minimum_age=18, maximum_age=60)
             able_to_work_date = birth_date + relativedelta(years=18, months=1)
+            while able_to_work_date == date.today():
+                birth_date = self.faker.date_of_birth(minimum_age=18, maximum_age=60)
+                able_to_work_date = birth_date + relativedelta(years=18, months=1)
             hire_date = self.faker.date_between(start_date=able_to_work_date, end_date='today')
             hire_date = hire_date.replace(day=1)
             first_name = single_country_faker.first_name()
@@ -145,7 +149,7 @@ class DatabaseSeeder:
                 position = self.faker.random_element(positions),
                 employment_type = self.faker.random_element(employment_types),
                 
-                salary_gbp = self.random(20, 100) * 100,
+                salary = self.random(20, 100) * 100,
                 
                 is_active = self.faker.boolean(chance_of_getting_true=90)
             )
@@ -200,6 +204,7 @@ class DatabaseSeeder:
                 
                 country = country,
                 city = single_country_faker.city(),
+                category = self.faker.random_element(list(Sponsor_Category)),
 
                 rep_first_name = rep_first_name,
                 rep_last_name = rep_last_name,
@@ -269,7 +274,7 @@ class DatabaseSeeder:
 
             financing = Financing(
                 source = stream,
-                value_gbp = self.random(min_val, max_val) / 100,
+                value = self.random(min_val, max_val) / 100,
                 income_date = self.faker.date_between(start_date='-5y', end_date='today')
             )
 
@@ -287,7 +292,7 @@ class DatabaseSeeder:
         for year in years:
             cost = Cost(
                 year = year,
-                value_gbp = self.random(30000000, 50000000) / 100
+                value = self.random(30000000, 50000000) / 100
             )
             costs.append(cost)
 
@@ -323,13 +328,18 @@ class DatabaseSeeder:
             minute = self.faker.random_element([0, 15, 30, 45])
             comp_time = time(hour, minute, 0)
 
+            if comp_date >= date.today():
+                spectators = None
+            else:
+                spectators = self.random(0, 2000)
+
             competition = Competition(
                 discipline_id = discipline.discipline_id,
                 name = f"{keyword} {suffix} {comp_date.year}",
                 date = comp_date,
                 time = comp_time,
                 city = city,
-                spectators = self.random(0, 2000)
+                spectators = spectators
             )
             competitions.append(competition)
         
@@ -356,19 +366,19 @@ class DatabaseSeeder:
             else:
                 end_date = None
 
-            contract_value_gbp = None
+            contract_value = None
             if self.faker.boolean(chance_of_getting_true=90):
-                contract_value_gbp = self.random(50000, 5000000) / 100
+                contract_value = self.random(50000, 5000000) / 100
 
             offer_type = self.faker.random_element(offer_types)
-            while contract_value_gbp is None and offer_type is None:
+            while contract_value is None and offer_type is None:
                 offer_type = self.faker.random_element(offer_types)
 
             contract = SponsorshipContract(
                 sponsor_id = sponsor.sponsor_id,
                 start_date = start_date,
                 end_date = end_date,
-                contract_value_gbp = contract_value_gbp,
+                contract_value = contract_value,
                 offer_type = offer_type
             )
             self.session.add(contract)
@@ -447,11 +457,10 @@ class DatabaseSeeder:
         disqualifications = [p for p in participations if p.disqualified]
 
         for disqualification in disqualifications:
-            other_results = [p for p in participations if p.competition_id == disqualification.competition_id and p.place is not None]
-            other_results.sort(key=lambda x: x.place)
-            found = False
-            for i in range(1, len(other_results) + 1):
-                if i != other_results[i-1].place:
-                    found = True
-                if found:
-                    other_results[i-1].place = i
+            valid_results = [p for p in participations if p.competition_id == disqualification.competition_id and p.place is not None]
+            valid_results.sort(key=lambda x: x.place)
+            for i in range(0, len(valid_results)):
+                valid_results[i].place = i + 1
+        
+        self.session.commit()
+

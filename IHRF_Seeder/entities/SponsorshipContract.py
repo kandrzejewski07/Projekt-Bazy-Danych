@@ -8,5 +8,5 @@ class SponsorshipContract(Base):
     sponsor_id = Column(Integer)
     start_date = Column(Date)
     end_date = Column(Date)
-    contract_value_gbp = Column(Numeric(12,2))
+    contract_value = Column(Numeric(12,2))
     offer_type = Column(String(30))
