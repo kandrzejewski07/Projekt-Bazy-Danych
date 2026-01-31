@@ -2,11 +2,11 @@
 title: "Team10"
 author: "Team10"
 date: "2026-01-26"
-lang: pl
-output:
+output: 
   pdf_document:
     toc: true
     number_sections: true
+lang: "pl"
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +14,9 @@ knitr::opts_chunk$set(
   echo = TRUE,
   warning = FALSE,
   message = FALSE,
-  cache = FALSE)
+  cache = FALSE,
+  dev     = "cairo_pdf" #- dodajemy tylko, gdy generujemy PDF"
+  )
 ```
 ## Połączenie z bazą
 ```{r dbConnect}
@@ -56,9 +58,6 @@ df <- dbGetQuery(con, query)
 
 #Sprawdzenie pierwszych obserwacji, aby nie wyświetlać całej tabeli
 head(df)
-
-#Podsumowanie dotyczące ramki danych
-summary(df)
 
 query2 <- "SELECT 
     ROUND(AVG(DATEDIFF(ostatnia_wygrana, pierwsza_wygrana)), 0) AS Srednia_Dlugosc_Szczytu_Dni,
@@ -263,7 +262,8 @@ library(ggplot2)
 query_fin <- "
 SELECT year(income_date) as Rok, COALESCE(value, 0) as Kwota, 'Inne' as Typ FROM financings
 UNION ALL
-SELECT year(start_date) as Rok, COALESCE(contract_value, 0) as Kwota, 'Sponsoring' as Typ FROM sponsorship_contracts
+SELECT year(start_date) as Rok, COALESCE(contract_value, 0) as Kwota, 'Sponsoring' as Typ FROM 
+sponsorship_contracts
 UNION ALL
 SELECT year as Rok, -COALESCE(value, 0) as Kwota, 'Koszty' as Typ FROM costs
 "
@@ -321,11 +321,43 @@ ggplot(dane_widownia, aes(x = Kategoria, y = Liczba_Widzow, fill = Kategoria)) +
   ) +
   theme_minimal()
 
-#Ważna uwaga dot. danych: O ile widzów (spectators) mamy przypisanych do zawodów (czyli do kategorii), o tyle sponsorzy nie są przypisani do kategorii! Tabela sponsorship_contracts nie łączy się z disciplines. 
+# --- CZĘŚĆ 4: ATRAKCYJNOŚĆ DLA SPONSORÓW ---
+
+# Skoro kontrakt nie ma kategorii, pobieramy ją od sponsora.
+# Zakładamy, że sponsor "Formula_H" inwestuje w tę właśnie kategorię.
+
+query_sponsorzy <- "
+SELECT 
+    s.category as Kategoria,
+    SUM(sc.contract_value) as Suma_Wsparcia,
+    COUNT(sc.contract_id) as Liczba_Kontraktow
+FROM sponsorship_contracts sc
+JOIN sponsors s ON sc.sponsor_id = s.sponsor_id
+GROUP BY s.category
+"
+
+dane_sponsorzy <- dbGetQuery(con, query_sponsorzy)
+
+# Wykres słupkowy: Gdzie płyną pieniądze?
+ggplot(dane_sponsorzy, aes(x = Kategoria, y = Suma_Wsparcia, fill = Kategoria)) +
+  geom_col(width = 0.6) +
+  # Dodajemy etykiety z kwotami (np. 120k) dla czytelności
+  geom_text(aes(label = paste0(round(Suma_Wsparcia / 1000, 0), " tys.")), 
+            vjust = -0.5, 
+            fontface = "bold") +
+  scale_fill_manual(values = c("Natural" = "sienna", "Formula_H" = "steelblue")) +
+  labs(
+    title = "Ulubieńcy sponsorów",
+    subtitle = "Łączna wartość kontraktów w podziale na typ sponsora",
+    x = "Kategoria",
+    y = "Wartość kontraktów"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") # Legenda niepotrzebna przy jasnych osiach
 ```
-# Cztery dodatkowe pytania
-## Jak miesiąc urodzenia chomika wpływa na wyniki?
-```r{pytanie 4.1 miesiące}
+# Cztery pytania
+## Jak miesiąc urodzenia wpływa na wyniki?
+```{r}
 df3 <- dbGetQuery(con, "
 SELECT
 MONTHNAME(h.birth_date) AS birth_month,
