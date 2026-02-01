@@ -4,7 +4,7 @@
   "settings": {
     "width": 2000,
     "height": 2000,
-    "scrollTop": -533.3333,
+    "scrollTop": 0,
     "scrollLeft": 0,
     "zoomLevel": 1,
     "show": 503,
@@ -1252,14 +1252,14 @@
         "id": "khcY-0ra0lvj-MzokzudF",
         "tableId": "QcTO7qLZIkiGUDLfFKWXk",
         "name": "weight",
-        "comment": "waga homika w gramach",
+        "comment": "waga chomika w gramach",
         "dataType": "INT",
         "default": "",
         "options": 8,
         "ui": {
           "keys": 0,
           "widthName": 60,
-          "widthComment": 134,
+          "widthComment": 139,
           "widthDataType": 60,
           "widthDefault": 60
         },
@@ -1712,14 +1712,14 @@
         "id": "BcY08TuyryfNKmhanGJqB",
         "tableId": "eiHWC6LANo91X-zJrV9Mk",
         "name": "employee_id",
-        "comment": "pracownik przeprowadzajcy test",
+        "comment": "pracownik przeprowadzający test",
         "dataType": "INT",
         "default": "",
         "options": 8,
         "ui": {
           "keys": 2,
           "widthName": 69,
-          "widthComment": 171,
+          "widthComment": 177,
           "widthDataType": 60,
           "widthDefault": 60
         },
@@ -1857,7 +1857,7 @@
           "columnIds": [
             "6D9Skqh3fR5zbflsO9Kbu"
           ],
-          "x": 438.5714,
+          "x": 443.5714,
           "y": 129.3305,
           "direction": 2
         },
@@ -1932,7 +1932,7 @@
           "columnIds": [
             "KqVy_7cn-PIgOXXXfm3Gb"
           ],
-          "x": 218.5714,
+          "x": 221.0714,
           "y": 253.3305,
           "direction": 8
         },
@@ -1969,7 +1969,7 @@
           "columnIds": [
             "BcY08TuyryfNKmhanGJqB"
           ],
-          "x": 995.1409,
+          "x": 1001.1409,
           "y": 385.28,
           "direction": 2
         },
