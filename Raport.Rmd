@@ -1,0 +1,478 @@
+---
+title: "International Hamster Race Federation"
+author: "Krystian Andrzejewski, Kajetan Marszałek, Franciszek Zuter, Filip Pilarski"
+date: "2026-01-26"
+output: 
+   html_document:
+      number_sections: true
+      toc: true
+      toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  cache = FALSE
+  )
+library(knitr)
+```
+
+```{r dbConnect, include=FALSE}
+#wczytanie pakietu potrzebnego do połączenia
+library(RMariaDB)
+
+#ustanowienie połączenia z serwerem zajęciowym
+con <- dbConnect(RMariaDB::MariaDB(),
+                 dbname = "team10",
+                 username = "team10",
+                 password = "te@mzio",
+                 host = "giniewicz.it")
+```
+# Pytanie 1
+## Znajdź najlepszego chomiczego sportowca w każdej z kategorii, ile czasu trwa „szczyt kariery” u chomików? 
+```{r pytanie1}
+query1 <- "WITH Ranking AS (
+    SELECT 
+        d.category AS Kategoria,
+        h.name AS Imie_Chomika,
+        CONCAT(o.first_name, ' ', o.last_name) AS Wlasciciel,
+        COUNT(*) AS Liczba_Zwyciestw,
+        RANK() OVER (PARTITION BY d.category ORDER BY COUNT(*) DESC) as Pozycja
+    FROM 
+        participations p
+    JOIN competitions c ON p.competition_id = c.competition_id
+    JOIN disciplines d ON c.discipline_id = d.discipline_id
+    JOIN hamsters h ON p.hamster_id = h.hamster_id
+    JOIN owners o ON h.owner_id = o.owner_id
+    WHERE 
+        p.place = 1 AND p.disqualified = 0
+    GROUP BY 
+        d.category, h.hamster_id
+)
+SELECT * FROM Ranking WHERE Pozycja = 1;"
+
+df1 <- dbGetQuery(con, query1)
+kable(df1, col.names=c('Kategoria', 'Imię chomika', 'Właściciel', 'Liczba zwycięstw', 'Pozycja'))
+
+query2 <- "SELECT 
+    ROUND(AVG(DATEDIFF(ostatnia_wygrana, pierwsza_wygrana)), 0) AS Srednia_Dlugosc_Szczytu_Dni,
+    MAX(DATEDIFF(ostatnia_wygrana, pierwsza_wygrana)) AS Rekordowa_Dlugosc_Dni
+FROM (
+    SELECT 
+        p.hamster_id,
+        MIN(c.date) as pierwsza_wygrana,
+        MAX(c.date) as ostatnia_wygrana
+    FROM participations p
+    JOIN competitions c ON p.competition_id = c.competition_id
+    WHERE p.place = 1 AND p.disqualified = 0
+    GROUP BY p.hamster_id
+    HAVING COUNT(*) >= 2  
+) AS statystyki_chomikow;"
+df2 <- dbGetQuery(con, query2)
+kable(df2, col.names=c('Średnia długość szytu kariery', 'Rekordowa długość szytu kariery'), caption='Średnia i rekordowa długość szczytu kariery w dniach')
+
+
+query3 <- "SELECT 
+    -- W jakim wieku zazwyczaj zdobywa się złoto?
+    ROUND(AVG(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)), 1) AS Sredni_Wiek_Mistrza_Msc,
+    
+    -- Kiedy najwcześniej zaczynają wygrywać?
+    MIN(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)) AS Wiek_Wschodzacej_Gwiazdy_Msc,
+    
+    -- Kiedy najpóźniej wygrywają (koniec szczytu)?
+    MAX(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)) AS Wiek_Weterana_Msc
+FROM participations p
+JOIN competitions c ON p.competition_id = c.competition_id
+JOIN hamsters h ON p.hamster_id = h.hamster_id
+WHERE p.place = 1 AND p.disqualified = 0;"
+
+df3 <- dbGetQuery(con, query3)
+kable(df3, col.names=c('Średni wiek mistrza', 'Wiek wschodzącej gwiazdy', 'Wiek weterana'), caption='Wiek chomików na poszczególnych etapach kariery w miesiącach')
+```
+# Pytanie 2
+## Czy któraś kategoria daje przewagę bogatym właścicielom chomików, którzy mogą sobie pozwolić na lepszy sprzęt?
+```{r pytanie2_kategorie}
+# podział na kategorie, które dają przewagę bogatym
+
+df1 <- dbGetQuery(con, "
+WITH owner_category_perf AS (
+  SELECT
+    o.owner_id,
+    o.wealth_rating,
+    d.category,
+    COUNT(*) AS starts,
+    AVG(CASE WHEN p.disqualified = 0 AND p.place IS NOT NULL THEN p.place END) AS avg_place,
+    AVG(CASE WHEN p.disqualified = 0 AND p.place = 1 THEN 1 ELSE 0 END) AS win_rate,
+    AVG(CASE WHEN p.disqualified = 0 AND p.place <= 3 THEN 1 ELSE 0 END) AS podium_rate
+  FROM owners o
+  JOIN hamsters h       ON h.owner_id = o.owner_id
+  JOIN participations p ON p.hamster_id = h.hamster_id
+  JOIN competitions c   ON c.competition_id = p.competition_id
+  JOIN disciplines d    ON d.discipline_id = c.discipline_id
+  GROUP BY o.owner_id, o.wealth_rating, d.category
+),
+owner_category_grouped AS (
+  SELECT
+    owner_id,
+    category,
+    wealth_rating,
+    starts,
+    avg_place,
+    win_rate,
+    podium_rate,
+    CASE
+      WHEN wealth_rating <= 3 THEN 'biedni (1-3)'
+      WHEN wealth_rating <= 7 THEN 'sredni (4-7)'
+      ELSE 'bogaci (8-10)'
+    END AS wealth_group
+  FROM owner_category_perf
+)
+SELECT
+  category AS kategoria,
+  wealth_group AS grupa_majatkowa,
+  COUNT(*) AS liczba_wlascicieli,
+  SUM(starts) AS liczba_startow,
+  AVG(avg_place) AS srednie_miejsce,
+  AVG(win_rate) AS odsetek_zwyciestw,
+  AVG(podium_rate) AS odsetek_podium
+FROM owner_category_grouped
+WHERE avg_place IS NOT NULL
+GROUP BY kategoria, grupa_majatkowa
+ORDER BY srednie_miejsce,
+  FIELD(grupa_majatkowa, 'biedni (1-3)', 'sredni (4-7)', 'bogaci (8-10)');
+")
+kable(df1, col.names=c('Kategoria', 'Grupa majątkowa', 'Liczba właścicieli', 'Liczba startów', 'Średnie miejsce', 'Odsetek zwycięstw', 'Odsetek podium'))
+
+
+```
+## Czy któraś dyscyplina daje przewagę bogatym właścicielom chomików, którzy mogą sobie pozwolić na lepszy sprzęt?
+```{r pytanie2_dyscypliny}
+# podział na dyscypliny, które dają przewagę bogatym
+
+df2 <- dbGetQuery(con, "
+WITH owner_discipline_perf AS (
+  SELECT
+  o.owner_id,
+  o.wealth_rating,
+  d.discipline_id,
+  d.name AS discipline_name,
+  d.category,
+  COUNT(*) AS starts,
+  AVG(CASE WHEN p.disqualified = 0 AND p.place IS NOT NULL THEN p.place END) AS avg_place
+  FROM owners o
+  JOIN hamsters h       ON h.owner_id = o.owner_id
+  JOIN participations p ON p.hamster_id = h.hamster_id
+  JOIN competitions c   ON c.competition_id = p.competition_id
+  JOIN disciplines d    ON d.discipline_id = c.discipline_id
+  GROUP BY o.owner_id, o.wealth_rating, d.discipline_id, d.name, d.category
+),
+grouped AS (
+  SELECT
+  discipline_id,
+  discipline_name,
+  category,
+  owner_id,
+  CASE
+  WHEN wealth_rating <= 3 THEN 'biedni'
+  WHEN wealth_rating >= 8 THEN 'bogaci'
+  ELSE NULL
+  END AS wealth_group,
+  avg_place
+  FROM owner_discipline_perf
+  WHERE avg_place IS NOT NULL
+),
+agg AS (
+  SELECT
+  discipline_id,
+  discipline_name,
+  category,
+  COUNT(DISTINCT CASE WHEN wealth_group = 'biedni' THEN owner_id END) AS poor_owners,
+  COUNT(DISTINCT CASE WHEN wealth_group = 'bogaci' THEN owner_id END) AS rich_owners,
+  AVG(CASE WHEN wealth_group = 'biedni' THEN avg_place END) AS avg_place_poor,
+  AVG(CASE WHEN wealth_group = 'bogaci' THEN avg_place END) AS avg_place_rich
+  FROM grouped
+  WHERE wealth_group IS NOT NULL
+  GROUP BY discipline_id, discipline_name, category
+)
+SELECT
+discipline_name AS dyscyplina,
+category AS kategoria,
+poor_owners AS liczba_biednych_wlascicieli,
+rich_owners AS liczba_bogatych_wlascicieli,
+avg_place_poor AS srednie_miejsce_biedni,
+avg_place_rich AS srednie_miejsce_bogaci,
+(avg_place_poor - avg_place_rich) AS przewaga_bogatych
+FROM agg
+WHERE poor_owners >= 2
+AND rich_owners >= 2
+ORDER BY przewaga_bogatych DESC
+LIMIT 10;")
+kable(df2, col.names=c('Dyscyplina', 'Kategoria', 'Liczba biednych właścicieli', 'Liczba bogatych właścicieli', 'Średnie miejsce biednych', 'Średnie miejsce bogatych', 'Przewaga bogatych'))
+
+```
+# Pytanie 3 
+## Sporządź wykres liczby uczestników zawodów, czy ten sport staje się bardziej, czy mniej popularny? Czy federacja jest rentowna finansowo? Które kategorie są najbardziej atrakcyjne dla widzów i sponsorów? 
+```{r pytanie3}
+# --- CZĘŚĆ 1: POPULARNOŚĆ (Trend w czasie) ---
+
+# SQL: Grupujemy zawody po dacie i liczymy uczestników
+query_pop <- "
+SELECT 
+    DATE_FORMAT(c.date, '%Y-%m-01') as Miesiac, -- Zaokrąglamy do 1. dnia miesiąca
+    COUNT(p.participation_id) as Liczba_Uczestnikow
+FROM participations p
+JOIN competitions c ON p.competition_id = c.competition_id
+GROUP BY Miesiac
+ORDER BY Miesiac;
+"
+dane_trend <- dbGetQuery(con, query_pop)
+
+# Konwersja kolumny Miesiac na format daty w R
+dane_trend$Miesiac <- as.Date(dane_trend$Miesiac)
+
+library(ggplot2)
+
+# Wykres liniowy
+ggplot(dane_trend, aes(x = Miesiac, y = Liczba_Uczestnikow)) +
+  geom_line(color = "darkgreen", size = 1.2) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") + # Linia trendu
+  labs(
+    title = "Popularność sportu w czasie",
+    subtitle = "Liczba startujących chomików miesięcznie",
+    x = "Data",
+    y = "Liczba startów"
+  ) +
+  theme_minimal()
+
+# --- CZĘŚĆ 2: RENTOWNOŚĆ (Przychody vs Koszty) ---
+
+# 1.
+library(DBI)
+library(dplyr)
+library(ggplot2)
+
+
+# 2. 
+# Używamy COALESCE(kolumna, 0), żeby zamienić NULL na 0 już na etapie pobierania
+query_fin <- "
+SELECT year(income_date) as Rok, COALESCE(value, 0) as Kwota, 'Inne' as Typ FROM financings
+UNION ALL
+SELECT year(start_date) as Rok, COALESCE(contract_value, 0) as Kwota, 'Sponsoring' as Typ FROM 
+sponsorship_contracts
+UNION ALL
+SELECT year as Rok, -COALESCE(value, 0) as Kwota, 'Koszty' as Typ FROM costs
+"
+dane_fin <- dbGetQuery(con, query_fin)
+
+# 3. 
+bilans_roczny <- dane_fin %>%
+  filter(!is.na(Rok)) %>% # Usuwamy ewentualne wpisy bez daty
+  group_by(Rok) %>%
+  # Dodajemy na.rm = TRUE jako drugie zabezpieczenie
+  summarise(Wynik_Finansowy = sum(Kwota, na.rm = TRUE)) %>%
+  mutate(Status = ifelse(Wynik_Finansowy > 0, "Zysk", "Strata"))
+
+# Wyłączamy notację naukową dla osi Y
+options(scipen = 999)
+
+# 4. Rysowanie wykresu
+ggplot(bilans_roczny, aes(x = factor(Rok), y = Wynik_Finansowy, fill = Status)) +
+  geom_col(width = 0.6) +
+  scale_fill_manual(values = c("Zysk" = "forestgreen", "Strata" = "firebrick")) +
+  geom_text(aes(label = round(Wynik_Finansowy, 0)), 
+            vjust = ifelse(bilans_roczny$Wynik_Finansowy >= 0, -0.5, 1.5),
+            fontface = "bold", 
+            size = 3.5) + # Trochę mniejsza czcionka, żeby się zmieściło
+  labs(
+    title = "Bilans roczny federacji",
+    x = "Rok",
+    y = "Wynik finansowy (GBP)"
+  ) +
+  theme_minimal()
+
+
+# --- CZĘŚĆ 3: ATRAKCYJNOŚĆ DLA WIDZÓW ---
+
+# Średnia liczba widzów na zawodach danej kategorii
+query_widzowie <- "
+SELECT 
+    d.category as Kategoria,
+    d.name as Dyscyplina,
+    c.spectators as Liczba_Widzow
+FROM competitions c
+JOIN disciplines d ON c.discipline_id = d.discipline_id
+"
+dane_widownia <- dbGetQuery(con, query_widzowie)
+
+# Wykres pudełkowy (pokazuje rozkład widowni)
+ggplot(dane_widownia, aes(x = Kategoria, y = Liczba_Widzow, fill = Kategoria)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.2, alpha = 0.3) + # Dodaje punkty, żeby widzieć poszczególne zawody
+  labs(
+    title = "Co przyciąga tłumy?",
+    subtitle = "Rozkład liczby widzów w zależności od kategorii",
+    x = "Kategoria",
+    y = "Liczba widzów na zawodach"
+  ) +
+  theme_minimal()
+
+# --- CZĘŚĆ 4: ATRAKCYJNOŚĆ DLA SPONSORÓW ---
+
+query_sponsorzy <- "
+SELECT 
+    s.category as Kategoria,
+    SUM(sc.contract_value) as Suma_Wsparcia,
+    COUNT(sc.contract_id) as Liczba_Kontraktow
+FROM sponsorship_contracts sc
+JOIN sponsors s ON sc.sponsor_id = s.sponsor_id
+GROUP BY s.category
+"
+
+dane_sponsorzy <- dbGetQuery(con, query_sponsorzy)
+
+# Wykres słupkowy: Gdzie płyną pieniądze?
+ggplot(dane_sponsorzy, aes(x = Kategoria, y = Suma_Wsparcia, fill = Kategoria)) +
+  geom_col(width = 0.6) +
+  # Dodajemy etykiety z kwotami
+  geom_text(aes(label = paste0(round(Suma_Wsparcia / 1000, 0), " tys.")), 
+            vjust = -0.5, 
+            fontface = "bold") +
+  scale_fill_manual(values = c("Natural" = "sienna", "Formula_H" = "steelblue")) +
+  labs(
+    title = "Ulubieńcy sponsorów",
+    subtitle = "Łączna wartość kontraktów w podziale na typ sponsora",
+    x = "Kategoria",
+    y = "Wartość kontraktów"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") # Legenda niepotrzebna przy jasnych osiach
+```
+
+# Pytania dodatkowe
+
+## Jak miesiąc urodzenia wpływa na wyniki?
+
+```{r pytanie4.1_miesiac}
+df3 <- dbGetQuery(con, "
+SELECT
+MONTHNAME(h.birth_date) AS miesiac_urodzenia,
+COUNT(*) liczba_startow,
+AVG(CASE 
+    WHEN p.disqualified = 0 
+    AND p.place IS NOT NULL 
+    THEN p.place 
+    END) AS srednie_miejsce
+FROM hamsters h
+JOIN participations p ON p.hamster_id = h.hamster_id
+GROUP BY miesiac_urodzenia
+HAVING liczba_startow >= 10
+ORDER BY srednie_miejsce ASC;")
+
+# tłumaczenie nazw miesięcy dla lepszej przejrzystości 
+miesiace_pl <- c(
+  January   = "styczeń",
+  February  = "luty",
+  March     = "marzec",
+  April     = "kwiecień",
+  May       = "maj",
+  June      = "czerwiec",
+  July      = "lipiec",
+  August    = "sierpień",
+  September = "wrzesień",
+  October   = "październik",
+  November  = "listopad",
+  December  = "grudzień"
+)
+
+df3$miesiac_urodzenia <- miesiace_pl[df3$miesiac_urodzenia]
+
+kable(df3, col.names=c('Miesiąc urodzenia', 'Liczba startów', 'Średnie miejsce'))
+```
+## Czy chomiki z większej hodowli lepiej radzą sobie na zawodach?
+```{r pytanie4.2_hodowle}
+df4 <- dbGetQuery(con, "
+WITH owner_stats AS (
+  SELECT
+    o.owner_id,
+    COUNT(DISTINCT h.hamster_id) AS hamster_count,
+    COUNT(p.participation_id) AS starts,
+    AVG(CASE WHEN p.disqualified = 0 AND p.place IS NOT NULL THEN p.place END) AS avg_place
+  FROM owners o
+  JOIN hamsters h       ON h.owner_id = o.owner_id
+  JOIN participations p ON p.hamster_id = h.hamster_id
+  GROUP BY o.owner_id
+),
+grouped AS (
+  SELECT
+    hamster_count,
+    COUNT(*) AS owners,
+    SUM(starts) AS starts_total,
+    AVG(avg_place) AS mean_avg_place
+  FROM owner_stats
+  WHERE avg_place IS NOT NULL
+  GROUP BY hamster_count
+)
+SELECT
+  hamster_count AS liczba_chomikow_u_wlasciciela,
+  owners AS liczba_wlascicieli,
+  starts_total AS liczba_startow,
+  mean_avg_place AS srednie_miejsce
+FROM grouped
+ORDER BY liczba_chomikow_u_wlasciciela;
+")
+kable(df4, col.names=c('Liczba chomików u właściciela', 'Liczba właścicieli', 'Liczba startów', 'Średnie miejsce'))
+```
+## Czy waga chomika wpływa na jego wynik?
+```{r pytanie4.3_waga}
+df5 <- dbGetQuery(con, "
+WITH perf AS (
+  SELECT
+    h.hamster_id,
+    h.weight,
+    p.disqualified,
+    p.place
+  FROM hamsters h
+  JOIN participations p ON p.hamster_id = h.hamster_id
+  WHERE h.weight IS NOT NULL
+)
+SELECT
+  CONCAT(FLOOR(weight / 20) * 20, '-', FLOOR(weight / 20) * 20 + 19) AS przedzial_wagi,
+  COUNT(*) AS liczba_startow,
+  COUNT(DISTINCT hamster_id) AS liczba_chomikow,
+  AVG(CASE WHEN disqualified = 0 AND place IS NOT NULL THEN place END) AS srednie_miejsce,
+  AVG(CASE WHEN disqualified = 0 AND place = 1 THEN 1 ELSE 0 END) AS odsetek_zwyciestw,
+  AVG(CASE WHEN disqualified = 0 AND place <= 3 THEN 1 ELSE 0 END) AS odsetek_podium
+FROM perf
+GROUP BY przedzial_wagi
+HAVING liczba_startow >= 10
+ORDER BY srednie_miejsce ASC;")
+
+kable(df5, col.names=c('Przedział wagi', 'Liczba startów', 'Liczba chomików', 'Średnie miejsce', 'Odsetek zwycięstw', 'Odsetek podium'))
+```
+## Czy konkretne specjalności (specialty) dają przewagę na zawodach?
+```{r pytanie4.4_specjalnosc}
+df6 <- dbGetQuery(con, "
+SELECT
+  COALESCE(h.specialty, 'brak_specjalnosci') AS specjalnosc,
+  COUNT(*) AS liczba_startow,
+  COUNT(DISTINCT h.hamster_id) AS liczba_chomikow,
+  AVG(CASE WHEN p.disqualified = 0 AND p.place IS NOT NULL THEN p.place END) AS srednie_miejsce,
+  AVG(CASE WHEN p.disqualified = 0 AND p.place = 1 THEN 1 ELSE 0 END) AS odsetek_zwyciestw,
+  AVG(CASE WHEN p.disqualified = 0 AND p.place <= 3 THEN 1 ELSE 0 END) AS odsetek_podium
+FROM hamsters h
+JOIN participations p ON p.hamster_id = h.hamster_id
+GROUP BY specjalnosc
+HAVING liczba_startow >= 10
+ORDER BY srednie_miejsce ASC;")
+
+kable(df6, col.names=c('Specjalność', 'Liczba startów', 'Liczba chomików', 'Średnie miejsce', 'Odsetek zwycięstw', 'Odsetek podium'))
+
+```
+
+
+```{r disconnect, include=FALSE}
+dbDisconnect(con)
+```

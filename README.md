@@ -8,7 +8,7 @@
 
 * R (wersja 4.5.1)
 
-    * Pakiety: `RMariaDB`, `knitr`
+    * Pakiety: `RMariaDB`, `knitr`, `DBI`, `ggplot2`, `dplyr`
 
 ## 2. Lista plików
 
@@ -17,6 +17,7 @@
 * `schemat.json.vuerd` - schemat ERD bazy danych
 * `main.py` - główny plik wypełniający skryptowo bazę danych
 * `database_seeder.py` - plik zaierający definicje klasy, która generuje dane dla każdej tabeli
+* `Raport.Rmd` - plik R markdown zawierający analizę danych i generujący raport 
 
 Pliki pomocnicze zawierające definicje klas używanych przy skryptowym wypełnianiu bazy:
 * `Base.py`
@@ -35,9 +36,9 @@ Pliki pomocnicze zawierające definicje klas używanych przy skryptowym wypełni
 
 ## 3. Instrukcja uruchamiania
 
-1. skompilowanie pliku `IHRF_Database.sql`
+1. skompilowanie pliku `IHRF_Database.sql`, po połączeniu się z bazą danych (Dane do połączenia: Connection name: Projekt, Connecting using: Server and Port, Server Address: giniewicz.it, Port: 3306, Database: team10, Username: team10, Password mode: Save as plaintext in settings, Password: te@mzio)
 2. uruchomienie pliku `main.py`
-3. 
+3. skompilowanie raportu z pliku `Raport.Rmd`
 
 
 
@@ -67,8 +68,8 @@ $\{employee\_id\}$, $\{email\}$ oraz $\{phone\}$ są unikalne, więc pozwalają 
 * $\{tax\_number\}$
 
 **Lista Zależności Funkcyjnych:**
-1. $sponsor\_id \to \{company\_name, tax\_number, country, city, rep\_first\_name, rep\_last\_name, rep\_email, rep\_phone\}$
-2. $tax\_number \to \{sponsor\_id, company\_name, country, city, rep\_first\_name, rep\_last\_name, rep\_email, rep\_phone\}$
+1. $sponsor\_id \to \{company\_name, tax\_number, country, city, category, rep\_first\_name, rep\_last\_name, rep\_email, rep\_phone\}$
+2. $tax\_number \to \{sponsor\_id, company\_name, country, city, category, rep\_first\_name, rep\_last\_name, rep\_email, rep\_phone\}$
 
 **Wyjaśnienie:**
 $\{sponsor\_id\}$, $\{tax\_number\}$ muszą być unikalne, więc pozwalają jednoznacznie identyfikować dane.
@@ -191,4 +192,3 @@ Jak widzimy z powyższej listy zależności funkcyjnych - każda z nich zaczyna 
 
 * Interpretacja oraz ułożenie odpowiednich zapytań w SQL do pytań z części 3.
 * Zautomatyzowanie generowania danych, które mają sens logiczny i spełniają założenia projektu.
-* 

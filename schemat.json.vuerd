@@ -4,8 +4,8 @@
   "settings": {
     "width": 2000,
     "height": 2000,
-    "scrollTop": 0,
-    "scrollLeft": -398.4809,
+    "scrollTop": -533.3333,
+    "scrollLeft": 0,
     "zoomLevel": 1,
     "show": 503,
     "database": 1,
@@ -112,6 +112,7 @@
           "GZs_VdFdGfMfITGwHX77k",
           "QG6-OTr4pgj4sPz91IcSU",
           "9qDA1aYd_ASGc8uBn5g7j",
+          "xNaXt2aaGMiV_21sxSWTD",
           "66aFcE-G2BfaqskLbPA-_",
           "oi15lytnOwchJO2Sr4rUX",
           "kE8I38tSYzrvZw0BsXoRn",
@@ -123,21 +124,22 @@
           "GZs_VdFdGfMfITGwHX77k",
           "QG6-OTr4pgj4sPz91IcSU",
           "9qDA1aYd_ASGc8uBn5g7j",
+          "xNaXt2aaGMiV_21sxSWTD",
           "66aFcE-G2BfaqskLbPA-_",
           "oi15lytnOwchJO2Sr4rUX",
           "kE8I38tSYzrvZw0BsXoRn",
           "DBEckhfOdznShzWSJUJFm"
         ],
         "ui": {
-          "x": 98.9588,
-          "y": 802.1495,
+          "x": -3.0412,
+          "y": 796.1495,
           "zIndex": 2,
           "widthName": 60,
           "widthComment": 60,
           "color": ""
         },
         "meta": {
-          "updateAt": 1769687695740,
+          "updateAt": 1769954575822,
           "createAt": 1769534049089
         }
       },
@@ -1785,6 +1787,26 @@
           "updateAt": 1769534049090,
           "createAt": 1769534049090
         }
+      },
+      "xNaXt2aaGMiV_21sxSWTD": {
+        "id": "xNaXt2aaGMiV_21sxSWTD",
+        "tableId": "Iurd553uw_emc2naVLWRJ",
+        "name": "category",
+        "comment": "",
+        "dataType": "ENUM('Natural', 'Formula_H')",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 156,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1769954595793,
+          "createAt": 1769954556863
+        }
       }
     },
     "relationshipEntities": {
@@ -1798,8 +1820,8 @@
           "columnIds": [
             "ZwnjFZpz6cbGJQ0lY3ppj"
           ],
-          "x": 494.9588,
-          "y": 938.1495,
+          "x": 467.9588,
+          "y": 944.1495,
           "direction": 2
         },
         "end": {

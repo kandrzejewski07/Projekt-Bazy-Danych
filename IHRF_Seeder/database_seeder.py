@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, time, date
-from random import choice, randint
+from datetime import timedelta, time, date
+from random import randint
 from dateutil.relativedelta import relativedelta
 from unidecode import unidecode
 
@@ -18,28 +18,30 @@ class DatabaseSeeder:
         self.random = randint
 
     def seed(self):
-        self.session.execute(text("DELETE FROM doping_tests"))
-        self.session.execute(text("DELETE FROM sponsorship_contracts"))
-        self.session.execute(text("DELETE FROM participations"))
-        self.session.execute(text("DELETE FROM competitions"))
-        self.session.execute(text("DELETE FROM disciplines"))
-        self.session.execute(text("DELETE FROM employees"))
-        self.session.execute(text("DELETE FROM hamsters"))
-        self.session.execute(text("DELETE FROM sponsors"))
-        self.session.execute(text("DELETE FROM financings"))
-        self.session.execute(text("DELETE FROM costs"))
-        self.session.execute(text("DELETE FROM owners"))
-        self.session.execute(text("ALTER TABLE doping_tests AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE sponsorship_contracts AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE participations AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE competitions AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE disciplines AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE employees AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE hamsters AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE sponsors AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE financings AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE costs AUTO_INCREMENT = 1"))
-        self.session.execute(text("ALTER TABLE owners AUTO_INCREMENT = 1"))
+        # 
+        # self.session.execute(text("DELETE FROM doping_tests"))
+        # self.session.execute(text("DELETE FROM sponsorship_contracts"))
+        # self.session.execute(text("DELETE FROM participations"))
+        # self.session.execute(text("DELETE FROM competitions"))
+        # self.session.execute(text("DELETE FROM disciplines"))
+        # self.session.execute(text("DELETE FROM employees"))
+        # self.session.execute(text("DELETE FROM hamsters"))
+        # self.session.execute(text("DELETE FROM sponsors"))
+        # self.session.execute(text("DELETE FROM financings"))
+        # self.session.execute(text("DELETE FROM costs"))
+        # self.session.execute(text("DELETE FROM owners"))
+        # self.session.execute(text("ALTER TABLE doping_tests AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE sponsorship_contracts AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE participations AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE competitions AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE disciplines AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE employees AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE hamsters AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE sponsors AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE financings AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE costs AUTO_INCREMENT = 1"))
+        # self.session.execute(text("ALTER TABLE owners AUTO_INCREMENT = 1"))
+        
         owners = self.create_owners(100)
         hamsters = self.create_hamsters(1000, owners)
         employees = self.create_employees(100)

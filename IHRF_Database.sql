@@ -111,7 +111,8 @@ CREATE OR REPLACE TABLE disciplines (
   surface       ENUM('Tarmac', 'Gravel', 'Sand', 'Ice', 'Snow') NOT NULL,
   distance      INT                                             NOT NULL,
 
-  PRIMARY KEY (discipline_id)
+  PRIMARY KEY (discipline_id),
+  UNIQUE KEY uk_disciplines_name (name)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

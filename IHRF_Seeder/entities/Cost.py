@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Numeric
+from sqlalchemy import Column, Integer, Numeric
 from entities.Base import Base
 
 class Cost(Base):
