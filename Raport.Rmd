@@ -71,7 +71,7 @@ FROM (
     HAVING COUNT(*) >= 2  
 ) AS statystyki_chomikow;"
 df2 <- dbGetQuery(con, query2)
-kable(df2, col.names=c('Średnia długość szytu kariery', 'Rekordowa długość szytu kariery'), caption='Średnia i rekordowa długość szczytu kariery w dniach')
+kable(df2, col.names=c('Średnia długość szczytu kariery', 'Rekordowa długość szczytu kariery'), caption='Średnia i rekordowa długość szczytu kariery w dniach')
 
 
 query3 <- "SELECT 
