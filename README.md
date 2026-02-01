@@ -44,7 +44,7 @@ Pliki pomocnicze zawierające definicje klas używanych przy skryptowym wypełni
 ## 4. Schemat projektu bazy danych
 
 ### Schemat ERD 
-**Informacja:** znajduje się w pliku: schemat.json.vuerd
+**Informacja:** znajduje się w pliku: `schemat.json.vuerd`
 
 
 ## 5. Lista zależności funkcyjnych dla każdej relacji
