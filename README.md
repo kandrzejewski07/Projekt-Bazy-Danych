@@ -41,6 +41,11 @@ Pliki pomocnicze zawierające definicje klas używanych przy skryptowym wypełni
 3. skompilowanie raportu z pliku `Raport.Rmd`
 
 
+## 4. Schemat projektu bazy danych
+
+### Schemat ERD 
+**Informacja:** znajduje się w pliku: schemat.json.vuerd
+
 
 ## 5. Lista zależności funkcyjnych dla każdej relacji
 
