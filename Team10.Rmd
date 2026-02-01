@@ -33,7 +33,7 @@ con <- dbConnect(RMariaDB::MariaDB(),
 # Pytanie 1
 ## Znajdź najlepszego chomiczego sportowca w każdej z kategorii, ile czasu trwa „szczyt kariery” u chomików? 
 ```{r pytanie1}
-query <- "WITH Ranking AS (
+query1 <- "WITH Ranking AS (
     SELECT 
         d.category AS Kategoria,
         h.name AS Imie_Chomika,
@@ -53,11 +53,8 @@ query <- "WITH Ranking AS (
 )
 SELECT * FROM Ranking WHERE Pozycja = 1;"
 
-#zapisanie uzyskanego wyniku, który jest ramką danych pod zmienną
-df <- dbGetQuery(con, query)
-
-#Sprawdzenie pierwszych obserwacji, aby nie wyświetlać całej tabeli
-head(df)
+df1 <- dbGetQuery(con, query1)
+df1
 
 query2 <- "SELECT 
     ROUND(AVG(DATEDIFF(ostatnia_wygrana, pierwsza_wygrana)), 0) AS Srednia_Dlugosc_Szczytu_Dni,
@@ -74,23 +71,25 @@ FROM (
     HAVING COUNT(*) >= 2  
 ) AS statystyki_chomikow;"
 df2 <- dbGetQuery(con, query2)
+df2
 
 
 query3 <- "SELECT 
     -- W jakim wieku zazwyczaj zdobywa się złoto?
-    ROUND(AVG(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)), 1) AS Sredni_Wiek_Mistrza_Miesiace,
+    ROUND(AVG(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)), 1) AS Sredni_Wiek_Mistrza_Msc,
     
     -- Kiedy najwcześniej zaczynają wygrywać?
-    MIN(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)) AS Wiek_Wschodzacej_Gwiazdy,
+    MIN(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)) AS Wiek_Wschodzacej_Gwiazdy_Msc,
     
     -- Kiedy najpóźniej wygrywają (koniec szczytu)?
-    MAX(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)) AS Wiek_Weterana
+    MAX(TIMESTAMPDIFF(MONTH, h.birth_date, c.date)) AS Wiek_Weterana_Msc
 FROM participations p
 JOIN competitions c ON p.competition_id = c.competition_id
 JOIN hamsters h ON p.hamster_id = h.hamster_id
 WHERE p.place = 1 AND p.disqualified = 0;"
 
 df3 <- dbGetQuery(con, query3)
+df3
 ```
 # Pytanie 2
 ## Czy któraś kategoria daje przewagę bogatym właścicielom chomików, którzy mogą sobie pozwolić na lepszy sprzęt?
@@ -323,9 +322,6 @@ ggplot(dane_widownia, aes(x = Kategoria, y = Liczba_Widzow, fill = Kategoria)) +
 
 # --- CZĘŚĆ 4: ATRAKCYJNOŚĆ DLA SPONSORÓW ---
 
-# Skoro kontrakt nie ma kategorii, pobieramy ją od sponsora.
-# Zakładamy, że sponsor "Formula_H" inwestuje w tę właśnie kategorię.
-
 query_sponsorzy <- "
 SELECT 
     s.category as Kategoria,
@@ -341,7 +337,7 @@ dane_sponsorzy <- dbGetQuery(con, query_sponsorzy)
 # Wykres słupkowy: Gdzie płyną pieniądze?
 ggplot(dane_sponsorzy, aes(x = Kategoria, y = Suma_Wsparcia, fill = Kategoria)) +
   geom_col(width = 0.6) +
-  # Dodajemy etykiety z kwotami (np. 120k) dla czytelności
+  # Dodajemy etykiety z kwotami
   geom_text(aes(label = paste0(round(Suma_Wsparcia / 1000, 0), " tys.")), 
             vjust = -0.5, 
             fontface = "bold") +
